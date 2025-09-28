@@ -140,20 +140,13 @@ class SessionManager {
       clearInterval(session.timerInterval);
     }
 
-    // Auto reset after stopping
-    const newSession = {
+    // Don't auto reset - keep session data for billing
+    this.updateSession(tableNumber, {
+      ...session,
+      timerInterval: undefined,
       isActive: false,
-      minutes: 0,
-      tableCharges: 0,
-      items: [],
-      tableNumber,
-      sessionId: Date.now().toString() + tableNumber,
-      status: 'completed' as const,
-      seconds: 0,
       endTime: new Date()
-    };
-    
-    this.updateSession(tableNumber, newSession);
+    });
   }
 
   addItem(tableNumber: number, item: any) {

@@ -11,8 +11,26 @@ export const Dashboard = () => {
   const [bills, setBills] = useState<BillData[]>([]);
 
   useEffect(() => {
-    // Load bills from localStorage on component mount
-    setBills(getBillsFromStorage());
+    // Load bills from localStorage on component mount and refresh when component mounts
+    const loadBills = () => setBills(getBillsFromStorage());
+    loadBills();
+    
+    // Listen for storage changes from other tabs/components
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'snooker_bills') {
+        loadBills();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check for updates every second to catch same-tab updates
+    const interval = setInterval(loadBills, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   const stats = {

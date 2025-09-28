@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Share2, Printer, FileText, X, User } from 'lucide-react';
@@ -71,7 +71,12 @@ Thank you for visiting Rolling Stones! 🎱
       <DialogContent className="max-w-md bg-card border-border">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold text-foreground">Bill Summary</DialogTitle>
+            <div>
+              <DialogTitle className="text-xl font-bold text-foreground">Bill Summary</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Review and share bill details
+              </DialogDescription>
+            </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="w-4 h-4" />
             </Button>
