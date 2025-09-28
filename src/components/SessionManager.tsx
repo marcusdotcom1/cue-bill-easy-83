@@ -9,6 +9,8 @@ interface ExtendedSessionData extends SessionData {
   startTime?: Date;
   endTime?: Date;
   status: 'active' | 'completed' | 'paid' | 'unpaid';
+  timerInterval?: NodeJS.Timeout;
+  seconds: number;
 }
 
 // Global session state manager
@@ -26,7 +28,8 @@ class SessionManager {
         items: [],
         tableNumber: i,
         sessionId: Date.now().toString() + i,
-        status: 'completed' as const
+        status: 'completed' as const,
+        seconds: 0
       });
     }
   }
@@ -69,7 +72,8 @@ class SessionManager {
       items: [],
       tableNumber,
       sessionId: Date.now().toString() + tableNumber,
-      status: 'completed' as const
+      status: 'completed' as const,
+      seconds: 0
     };
   }
 
@@ -81,6 +85,9 @@ class SessionManager {
   }
 
   resetSession(tableNumber: number) {
+    const session = this.getSession(tableNumber);
+    this.stopTimer(tableNumber);
+    
     const newSession = {
       isActive: false,
       minutes: 0,
@@ -88,9 +95,74 @@ class SessionManager {
       items: [],
       tableNumber,
       sessionId: Date.now().toString() + tableNumber,
-      status: 'completed' as const
+      status: 'completed' as const,
+      seconds: 0
     };
     this.updateSession(tableNumber, newSession);
+  }
+
+  startTimer(tableNumber: number) {
+    const session = this.getSession(tableNumber);
+    if (session.timerInterval) {
+      clearInterval(session.timerInterval);
+    }
+
+    const interval = setInterval(() => {
+      const currentSession = this.getSession(tableNumber);
+      const newSeconds = currentSession.seconds + 1;
+      const newMinutes = Math.floor(newSeconds / 60);
+      
+      this.updateSession(tableNumber, {
+        ...currentSession,
+        seconds: newSeconds,
+        minutes: newMinutes,
+        tableCharges: Math.ceil(newMinutes / 15) * 70,
+        isActive: true,
+        startTime: currentSession.startTime || new Date()
+      });
+    }, 1000);
+
+    this.updateSession(tableNumber, {
+      ...session,
+      timerInterval: interval,
+      isActive: true,
+      startTime: new Date()
+    });
+  }
+
+  stopTimer(tableNumber: number) {
+    const session = this.getSession(tableNumber);
+    if (session.timerInterval) {
+      clearInterval(session.timerInterval);
+    }
+
+    this.updateSession(tableNumber, {
+      ...session,
+      timerInterval: undefined,
+      isActive: false,
+      endTime: new Date()
+    });
+  }
+
+  addItem(tableNumber: number, item: any) {
+    const session = this.getSession(tableNumber);
+    const existingItem = session.items.find(i => i.id === item.id);
+    
+    if (existingItem) {
+      this.updateSession(tableNumber, {
+        ...session,
+        items: session.items.map(i => 
+          i.id === item.id 
+            ? { ...i, quantity: i.quantity + 1 }
+            : i
+        )
+      });
+    } else {
+      this.updateSession(tableNumber, {
+        ...session,
+        items: [...session.items, { ...item, quantity: 1 }]
+      });
+    }
   }
 }
 

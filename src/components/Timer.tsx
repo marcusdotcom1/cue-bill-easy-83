@@ -4,48 +4,13 @@ import { Card } from '@/components/ui/card';
 import { Play, Square, Clock } from 'lucide-react';
 
 interface TimerProps {
-  onTimeUpdate: (minutes: number) => void;
   onSessionStart: () => void;
   onSessionEnd: () => void;
   isActive: boolean;
-  initialSeconds?: number;
+  seconds: number;
 }
 
-export const Timer = ({ onTimeUpdate, onSessionStart, onSessionEnd, isActive, initialSeconds = 0 }: TimerProps) => {
-  const [isRunning, setIsRunning] = useState(isActive);
-  const [seconds, setSeconds] = useState(initialSeconds);
-
-  // Use useCallback to prevent re-creation of onTimeUpdate causing render loops
-  const stableTimeUpdate = useCallback((minutes: number) => {
-    onTimeUpdate(minutes);
-  }, [onTimeUpdate]);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isRunning) {
-      interval = setInterval(() => {
-        setSeconds(prev => {
-          const newSeconds = prev + 1;
-          const minutes = Math.floor(newSeconds / 60);
-          // Use timeout to avoid updating parent during render
-          setTimeout(() => stableTimeUpdate(minutes), 0);
-          return newSeconds;
-        });
-      }, 1000);
-    }
-
-    return () => clearInterval(interval);
-  }, [isRunning, stableTimeUpdate]);
-
-  // Sync with external state
-  useEffect(() => {
-    setIsRunning(isActive);
-  }, [isActive]);
-
-  useEffect(() => {
-    setSeconds(initialSeconds);
-  }, [initialSeconds]);
+export const Timer = ({ onSessionStart, onSessionEnd, isActive, seconds }: TimerProps) => {
 
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -59,19 +24,11 @@ export const Timer = ({ onTimeUpdate, onSessionStart, onSessionEnd, isActive, in
   };
 
   const handleStart = () => {
-    setIsRunning(true);
     onSessionStart();
   };
 
   const handleStop = () => {
-    setIsRunning(false);
     onSessionEnd();
-  };
-
-  const handleReset = () => {
-    setIsRunning(false);
-    setSeconds(0);
-    stableTimeUpdate(0);
   };
 
   return (
@@ -89,7 +46,7 @@ export const Timer = ({ onTimeUpdate, onSessionStart, onSessionEnd, isActive, in
         </div>
 
         <div className="flex gap-4 justify-center">
-          {!isRunning ? (
+          {!isActive ? (
             <Button
               onClick={handleStart}
               size="lg"
@@ -107,17 +64,6 @@ export const Timer = ({ onTimeUpdate, onSessionStart, onSessionEnd, isActive, in
             >
               <Square className="w-8 h-8 mr-3" />
               Stop Game
-            </Button>
-          )}
-          
-          {seconds > 0 && (
-            <Button
-              onClick={handleReset}
-              size="lg"
-              variant="secondary"
-              className="px-6 py-6 text-lg font-medium"
-            >
-              Reset
             </Button>
           )}
         </div>

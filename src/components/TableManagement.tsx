@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Timer } from '@/components/Timer';
 import { ItemsBar, type Item } from '@/components/ItemsBar';
 import { SessionSummary, type SessionData } from '@/components/SessionSummary';
@@ -8,40 +8,20 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { saveBillToStorage } from '@/utils/localStorage';
-
-interface SessionState extends SessionData {
-  startTime?: Date;
-  endTime?: Date;
-}
+import { useSessionManager } from '@/components/SessionManager';
 
 interface TableManagementProps {
   tableNumber: number;
 }
 
 export const TableManagement = ({ tableNumber }: TableManagementProps) => {
-  const [session, setSession] = useState<SessionState>({
-    isActive: false,
-    minutes: 0,
-    tableCharges: 0,
-    items: [],
-  });
+  const sessionManager = useSessionManager();
+  const session = sessionManager.getSession(tableNumber);
   const [showBill, setShowBill] = useState(false);
   const [showSessionEndModal, setShowSessionEndModal] = useState(false);
 
-  const handleTimeUpdate = (minutes: number) => {
-    setSession(prev => ({
-      ...prev,
-      minutes,
-      tableCharges: Math.ceil(minutes / 15) * 70
-    }));
-  };
-
   const handleSessionStart = () => {
-    setSession(prev => ({ 
-      ...prev, 
-      isActive: true,
-      startTime: new Date()
-    }));
+    sessionManager.startTimer(tableNumber);
     toast({
       title: `Table ${tableNumber} Started! 🎱`,
       description: "Timer is now running. Game in progress!",
@@ -49,11 +29,7 @@ export const TableManagement = ({ tableNumber }: TableManagementProps) => {
   };
 
   const handleSessionEnd = () => {
-    setSession(prev => ({ 
-      ...prev, 
-      isActive: false,
-      endTime: new Date()
-    }));
+    sessionManager.stopTimer(tableNumber);
     
     // Show session end modal for customer details
     setShowSessionEndModal(true);
@@ -65,25 +41,7 @@ export const TableManagement = ({ tableNumber }: TableManagementProps) => {
   };
 
   const handleAddItem = (item: Item) => {
-    const existingItem = session.items.find(i => i.id === item.id);
-    
-    setSession(prev => {
-      if (existingItem) {
-        return {
-          ...prev,
-          items: prev.items.map(i => 
-            i.id === item.id 
-              ? { ...i, quantity: i.quantity + 1 }
-              : i
-          )
-        };
-      } else {
-        return {
-          ...prev,
-          items: [...prev.items, { ...item, quantity: 1 }]
-        };
-      }
-    });
+    sessionManager.addItem(tableNumber, item);
     
     toast({
       title: `${item.name} Added! 🛒`,
@@ -97,7 +55,7 @@ export const TableManagement = ({ tableNumber }: TableManagementProps) => {
 
   const handleCloseBill = () => {
     setShowBill(false);
-    handleReset();
+    sessionManager.resetSession(tableNumber);
   };
 
   const handleSessionEndSubmit = (customerName: string, phone: string, paymentStatus: 'paid' | 'unpaid') => {
@@ -120,16 +78,7 @@ export const TableManagement = ({ tableNumber }: TableManagementProps) => {
     });
 
     // Reset for next session
-    handleReset();
-  };
-
-  const handleReset = () => {
-    setSession({
-      isActive: false,
-      minutes: 0,
-      tableCharges: 0,
-      items: [],
-    });
+    sessionManager.resetSession(tableNumber);
   };
 
   const getTableStatus = () => {
@@ -166,11 +115,10 @@ export const TableManagement = ({ tableNumber }: TableManagementProps) => {
         {/* Timer Section */}
         <div className="lg:col-span-2">
           <Timer
-            onTimeUpdate={handleTimeUpdate}
             onSessionStart={handleSessionStart}
             onSessionEnd={handleSessionEnd}
             isActive={session.isActive}
-            initialSeconds={session.minutes * 60}
+            seconds={session.seconds}
           />
         </div>
 
