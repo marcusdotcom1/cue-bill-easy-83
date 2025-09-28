@@ -112,11 +112,14 @@ class SessionManager {
       const newSeconds = currentSession.seconds + 1;
       const newMinutes = Math.floor(newSeconds / 60);
       
+      // Calculate charges: 70 rupees for first 15 minutes, then 70 for each additional 15 minutes
+      const tableCharges = newMinutes === 0 ? 70 : Math.ceil(newMinutes / 15) * 70;
+      
       this.updateSession(tableNumber, {
         ...currentSession,
         seconds: newSeconds,
         minutes: newMinutes,
-        tableCharges: Math.ceil(newMinutes / 15) * 70,
+        tableCharges: tableCharges,
         isActive: true,
         startTime: currentSession.startTime || new Date()
       });
@@ -126,7 +129,8 @@ class SessionManager {
       ...session,
       timerInterval: interval,
       isActive: true,
-      startTime: new Date()
+      startTime: new Date(),
+      tableCharges: 70 // Immediately charge 70 rupees when starting
     });
   }
 
@@ -136,12 +140,20 @@ class SessionManager {
       clearInterval(session.timerInterval);
     }
 
-    this.updateSession(tableNumber, {
-      ...session,
-      timerInterval: undefined,
+    // Auto reset after stopping
+    const newSession = {
       isActive: false,
+      minutes: 0,
+      tableCharges: 0,
+      items: [],
+      tableNumber,
+      sessionId: Date.now().toString() + tableNumber,
+      status: 'completed' as const,
+      seconds: 0,
       endTime: new Date()
-    });
+    };
+    
+    this.updateSession(tableNumber, newSession);
   }
 
   addItem(tableNumber: number, item: any) {
